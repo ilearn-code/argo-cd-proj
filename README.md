@@ -1,8 +1,44 @@
 # Production-Grade GitOps Project with Argo CD on Azure
 
-[![CI/CD](https://github.com/YOUR-ORG/YOUR-REPO/actions/workflows/ci-cd.yaml/badge.svg)](https://github.com/YOUR-ORG/YOUR-REPO/actions)
+[![CI/CD](https://github.com/ilearn-code/argo-cd-proj/actions/workflows/ci-cd.yaml/badge.svg)](https://github.com/ilearn-code/argo-cd-proj/actions)
 
 A complete, production-ready GitOps implementation using Argo CD on Azure Kubernetes Service (AKS), demonstrating industry best practices for multi-environment deployments with automated CI/CD pipelines.
+
+## 📸 Project Screenshots
+
+### Argo CD Dashboard
+![Argo CD Dashboard](proj-img/argocd.satyamay.tech-final.png)
+*Complete view of all environments managed by Argo CD*
+
+### Environment Details
+
+<table>
+  <tr>
+    <td width="50%">
+      <h4>Development Environment</h4>
+      <img src="proj-img/dev-argo-cd.png" alt="Dev Argo CD">
+      <p><em>Auto-sync enabled for rapid iteration</em></p>
+      <img src="proj-img/dev.satyamay.tech.png" alt="Dev Application">
+      <p><em>Live dev application at dev.satyamay.tech</em></p>
+    </td>
+    <td width="50%">
+      <h4>Staging Environment</h4>
+      <img src="proj-img/stage-argo-cd.png" alt="Stage Argo CD">
+      <p><em>Manual sync for controlled deployments</em></p>
+      <img src="proj-img/stage.satyamay.tech.png" alt="Stage Application">
+      <p><em>Live stage application at stage.satyamay.tech</em></p>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <h4>Production Environment</h4>
+      <img src="proj-img/prod-argo-cd.png" alt="Prod Argo CD">
+      <p><em>Strict manual sync with notifications</em></p>
+      <img src="proj-img/prod.satyamay.tech.png" alt="Prod Application">
+      <p><em>Live production application at prod.satyamay.tech</em></p>
+    </td>
+  </tr>
+</table>
 
 ## 🏗️ Architecture Overview
 
@@ -95,8 +131,8 @@ argo-cd/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR-ORG/YOUR-REPO.git
-cd argo-cd
+git clone https://github.com/ilearn-code/argo-cd-proj.git
+cd argo-cd-proj
 ```
 
 ### 2. Set Up Azure Infrastructure
@@ -151,11 +187,15 @@ Update the following files with your values:
 - `environments/*/values.yaml`
 - `.github/workflows/ci-cd.yaml`
 
-**GitHub Repository URL**:
-- `argo/application-*.yaml`
-- `argo/applicationset.yaml`
+**GitHub Repository URL**: `https://github.com/ilearn-code/argo-cd-proj.git`
+- Already configured in `argo/application-*.yaml`
+- Already configured in `argo/applicationset.yaml`
 
-Replace `YOUR-ORG/YOUR-REPO` with your actual repository path.
+**Custom Domains**:
+- Dev: `dev.satyamay.tech`
+- Stage: `stage.satyamay.tech`
+- Prod: `prod.satyamay.tech`
+- Argo CD: `argocd.satyamay.tech`
 
 ### 5. Deploy Argo CD Applications
 
