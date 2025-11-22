@@ -16,7 +16,7 @@ spec:
   project: default
   
   source:
-    repoURL: https://github.com/YOUR-ORG/YOUR-REPO.git
+    repoURL: https://github.com/ilearn-code/argo-cd-proj.git
     targetRevision: main
     path: helm
     helm:
