@@ -1,1 +1,1 @@
-# GitOps Demo
+# GitOps Demo Application
