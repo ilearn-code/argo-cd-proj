@@ -22,9 +22,6 @@ spec:
     helm:
       valueFiles:
         - ../environments/prod/values.yaml
-      parameters:
-        - name: image.tag
-          value: "prod-v1.0.0"
   
   destination:
     server: https://kubernetes.default.svc
