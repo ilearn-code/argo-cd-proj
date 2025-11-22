@@ -3,8 +3,8 @@
 # Image configuration for production
 image:
   repository: acrilearncode2024.azurecr.io/gitops-demo-app
-  tag: "prod-v1.0.0"
-  pullPolicy: IfNotPresent
+  tag: "dev-latest"
+  pullPolicy: Always
 
 # Higher replica count for production
 replicaCount: 3
