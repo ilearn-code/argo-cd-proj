@@ -1,0 +1,185 @@
+name: CI/CD Pipeline - Build, Push, and Update GitOps
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'app/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'app/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - stage
+          - prod
+
+env:
+  REGISTRY_NAME: myacr
+  ACR_LOGIN_SERVER: myacr.azurecr.io
+  IMAGE_NAME: gitops-demo-app
+
+jobs:
+  build-and-push:
+    name: Build Docker Image and Push to ACR
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.version }}
+      environment: ${{ steps.determine-env.outputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Determine environment
+        id: determine-env
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          else
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Generate image metadata
+        id: meta
+        run: |
+          ENV="${{ steps.determine-env.outputs.environment }}"
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          
+          if [ "$ENV" == "dev" ]; then
+            TAG="${ENV}-${TIMESTAMP}-${SHORT_SHA}"
+          else
+            TAG="${ENV}-v1.0.${GITHUB_RUN_NUMBER}"
+          fi
+          
+          echo "version=${TAG}" >> $GITHUB_OUTPUT
+          echo "timestamp=${TIMESTAMP}" >> $GITHUB_OUTPUT
+          echo "sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Login to Azure Container Registry
+        run: |
+          az acr login --name ${{ env.REGISTRY_NAME }}
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./app
+          file: ./app/Dockerfile
+          push: true
+          tags: |
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+            ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.determine-env.outputs.environment }}-latest
+          cache-from: type=registry,ref=${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          build-args: |
+            BUILD_DATE=${{ steps.meta.outputs.timestamp }}
+            VCS_REF=${{ steps.meta.outputs.sha }}
+      
+      - name: Scan image for vulnerabilities
+        run: |
+          az acr repository show-tags \
+            --name ${{ env.REGISTRY_NAME }} \
+            --repository ${{ env.IMAGE_NAME }} \
+            --output table
+          
+          # Optional: Add Trivy or similar scanner here
+          # docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          #   aquasec/trivy image ${{ env.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+
+  update-gitops-manifest:
+    name: Update GitOps Manifests
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITOPS_PAT }}
+      
+      - name: Update image tag in environment values
+        run: |
+          ENV="${{ needs.build-and-push.outputs.environment }}"
+          NEW_TAG="${{ needs.build-and-push.outputs.image-tag }}"
+          VALUES_FILE="environments/${ENV}/values.yaml"
+          
+          echo "Updating ${VALUES_FILE} with tag ${NEW_TAG}"
+          
+          # Update the image tag using sed
+          sed -i "s|tag: .*|tag: \"${NEW_TAG}\"|g" ${VALUES_FILE}
+          
+          # Verify the change
+          echo "Updated values file:"
+          cat ${VALUES_FILE}
+      
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          ENV="${{ needs.build-and-push.outputs.environment }}"
+          NEW_TAG="${{ needs.build-and-push.outputs.image-tag }}"
+          
+          git add environments/${ENV}/values.yaml
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: Update ${ENV} image to ${NEW_TAG}"
+            git push origin main
+            echo "Changes pushed successfully"
+          fi
+      
+      - name: Create PR for stage promotion (if dev)
+        if: needs.build-and-push.outputs.environment == 'dev'
+        run: |
+          # This would create a PR to promote dev to stage
+          # Requires GitHub CLI or API call
+          echo "Dev deployment successful. Consider promoting to stage."
+          echo "Manual PR creation or automation can be added here."
+
+  verify-deployment:
+    name: Verify Deployment in Argo CD
+    needs: [build-and-push, update-gitops-manifest]
+    runs-on: ubuntu-latest
+    if: needs.build-and-push.outputs.environment == 'dev'
+    
+    steps:
+      - name: Wait for Argo CD sync
+        run: |
+          echo "Waiting for Argo CD to sync the new changes..."
+          sleep 30
+      
+      - name: Check deployment status
+        run: |
+          ENV="${{ needs.build-and-push.outputs.environment }}"
+          echo "Deployment to ${ENV} initiated"
+          echo "Check Argo CD UI for deployment status"
+          # Optional: Add Argo CD CLI commands to verify sync status
+          # argocd app get gitops-demo-app-${ENV}
+          # argocd app wait gitops-demo-app-${ENV} --timeout 300

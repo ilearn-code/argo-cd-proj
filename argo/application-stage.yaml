@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitops-demo-app-stage
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    environment: stage
+    app: gitops-demo-app
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: gitops-notifications
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/YOUR-ORG/YOUR-REPO.git
+    targetRevision: main
+    path: helm
+    helm:
+      valueFiles:
+        - ../environments/stage/values.yaml
+      parameters:
+        - name: image.tag
+          value: "stage-v1.0.0"
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitops-demo-stage
+  
+  # Manual sync for staging - requires approval
+  syncPolicy:
+    # No automated sync for staging
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

@@ -1,0 +1,102 @@
+name: Promote to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      source-tag:
+        description: 'Image tag to promote to production'
+        required: true
+        type: string
+
+jobs:
+  promote-to-prod:
+    name: Promote Image to Production
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITOPS_PAT }}
+      
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Verify image exists
+        run: |
+          az acr repository show-tags \
+            --name myacr \
+            --repository gitops-demo-app \
+            --output table | grep "${{ inputs.source-tag }}" || exit 1
+      
+      - name: Tag image for production
+        run: |
+          az acr login --name myacr
+          
+          SOURCE_IMAGE="myacr.azurecr.io/gitops-demo-app:${{ inputs.source-tag }}"
+          PROD_TAG="prod-v1.0.${{ github.run_number }}"
+          PROD_IMAGE="myacr.azurecr.io/gitops-demo-app:${PROD_TAG}"
+          
+          # Pull source image
+          docker pull ${SOURCE_IMAGE}
+          
+          # Tag for production
+          docker tag ${SOURCE_IMAGE} ${PROD_IMAGE}
+          docker tag ${SOURCE_IMAGE} myacr.azurecr.io/gitops-demo-app:prod-latest
+          
+          # Push production tags
+          docker push ${PROD_IMAGE}
+          docker push myacr.azurecr.io/gitops-demo-app:prod-latest
+          
+          echo "PROD_TAG=${PROD_TAG}" >> $GITHUB_ENV
+      
+      - name: Create promotion branch
+        run: |
+          BRANCH_NAME="promote-to-prod-${{ github.run_number }}"
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git checkout -b ${BRANCH_NAME}
+          
+          # Update production values
+          sed -i "s|tag: .*|tag: \"${PROD_TAG}\"|g" environments/prod/values.yaml
+          
+          git add environments/prod/values.yaml
+          git commit -m "chore: Promote to production - ${PROD_TAG}"
+          git push origin ${BRANCH_NAME}
+          
+          echo "BRANCH_NAME=${BRANCH_NAME}" >> $GITHUB_ENV
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITOPS_PAT }}
+          branch: ${{ env.BRANCH_NAME }}
+          title: "🚀 Promote to Production - ${{ env.PROD_TAG }}"
+          body: |
+            ## Production Promotion Request
+            
+            **Source Tag:** ${{ inputs.source-tag }}
+            **Production Tag:** ${{ env.PROD_TAG }}
+            
+            ### Changes
+            - Updates production environment to use new image tag
+            
+            ### Verification Checklist
+            - [ ] Staging tests passed
+            - [ ] Security scan completed
+            - [ ] Performance tests passed
+            - [ ] Stakeholder approval obtained
+            
+            ### Rollback Plan
+            Previous production tag can be restored by reverting this PR.
+            
+            **Note:** This PR requires manual review and approval before merging.
+          labels: |
+            production
+            promotion
+          reviewers: |
+            devops-team

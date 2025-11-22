@@ -1,0 +1,60 @@
+# Staging Environment Configuration
+
+# Image configuration for staging
+image:
+  repository: myacr.azurecr.io/gitops-demo-app
+  tag: "stage-v1.0.0"
+  pullPolicy: IfNotPresent
+
+# Moderate replica count for staging
+replicaCount: 2
+
+# Environment variables for staging
+env:
+  - name: ENVIRONMENT
+    value: "staging"
+  - name: APP_VERSION
+    value: "v1.0.0"
+  - name: PORT
+    value: "8080"
+  - name: LOG_LEVEL
+    value: "INFO"
+
+# Staging ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: gitops-demo-stage.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: gitops-demo-stage-tls
+      hosts:
+        - gitops-demo-stage.example.com
+
+# Moderate resources for staging
+resources:
+  limits:
+    cpu: 400m
+    memory: 384Mi
+  requests:
+    cpu: 200m
+    memory: 192Mi
+
+# Enable basic autoscaling in staging
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+
+# Enable PDB in staging
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

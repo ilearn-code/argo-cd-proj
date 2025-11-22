@@ -1,0 +1,75 @@
+# Production Environment Configuration
+
+# Image configuration for production
+image:
+  repository: myacr.azurecr.io/gitops-demo-app
+  tag: "prod-v1.0.0"
+  pullPolicy: IfNotPresent
+
+# Higher replica count for production
+replicaCount: 3
+
+# Environment variables for production
+env:
+  - name: ENVIRONMENT
+    value: "production"
+  - name: APP_VERSION
+    value: "v1.0.0"
+  - name: PORT
+    value: "8080"
+  - name: LOG_LEVEL
+    value: "WARNING"
+
+# Production ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/rate-limit: "200"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+  hosts:
+    - host: gitops-demo.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: gitops-demo-prod-tls
+      hosts:
+        - gitops-demo.example.com
+
+# Production-grade resources
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# Enable autoscaling in production
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Enable PDB in production
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Production affinity rules for better distribution
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - gitops-demo-app
+        topologyKey: kubernetes.io/hostname

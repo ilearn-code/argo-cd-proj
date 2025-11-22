@@ -1,0 +1,59 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitops-demo-app-dev
+  namespace: argocd
+  # Finalizers ensure proper cleanup
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    environment: dev
+    app: gitops-demo-app
+spec:
+  # Project this application belongs to
+  project: default
+  
+  # Source configuration - where the manifests are
+  source:
+    repoURL: https://github.com/YOUR-ORG/YOUR-REPO.git
+    targetRevision: main
+    path: helm
+    helm:
+      # Use environment-specific values
+      valueFiles:
+        - ../environments/dev/values.yaml
+      parameters:
+        - name: image.tag
+          value: "dev-latest"
+  
+  # Destination - where to deploy
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitops-demo-dev
+  
+  # Sync policy - auto-sync for dev environment
+  syncPolicy:
+    automated:
+      # Automatically sync when Git state differs from cluster state
+      prune: true
+      # Automatically create namespace if it doesn't exist
+      selfHeal: true
+      # Allow empty (initial) state
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  # Health assessment
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

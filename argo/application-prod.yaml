@@ -1,0 +1,53 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitops-demo-app-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    environment: prod
+    app: gitops-demo-app
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: gitops-prod-alerts
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: gitops-prod-alerts
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: gitops-prod-alerts
+spec:
+  project: default
+  
+  source:
+    repoURL: https://github.com/YOUR-ORG/YOUR-REPO.git
+    targetRevision: main
+    path: helm
+    helm:
+      valueFiles:
+        - ../environments/prod/values.yaml
+      parameters:
+        - name: image.tag
+          value: "prod-v1.0.0"
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitops-demo-prod
+  
+  # Manual sync for production - strictly requires approval
+  syncPolicy:
+    # No automated sync for production
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      # Respect ignore differences in production
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

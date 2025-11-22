@@ -1,0 +1,64 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: gitops-demo-app-all-envs
+  namespace: argocd
+spec:
+  # Use list generator to create applications for each environment
+  generators:
+    - list:
+        elements:
+          - environment: dev
+            namespace: gitops-demo-dev
+            replicaCount: "1"
+            autoSync: "true"
+            valuesFile: ../environments/dev/values.yaml
+          - environment: stage
+            namespace: gitops-demo-stage
+            replicaCount: "2"
+            autoSync: "false"
+            valuesFile: ../environments/stage/values.yaml
+          - environment: prod
+            namespace: gitops-demo-prod
+            replicaCount: "3"
+            autoSync: "false"
+            valuesFile: ../environments/prod/values.yaml
+  
+  template:
+    metadata:
+      name: 'gitops-demo-app-{{environment}}'
+      namespace: argocd
+      labels:
+        environment: '{{environment}}'
+        app: gitops-demo-app
+    spec:
+      project: default
+      
+      source:
+        repoURL: https://github.com/YOUR-ORG/YOUR-REPO.git
+        targetRevision: main
+        path: helm
+        helm:
+          valueFiles:
+            - '{{valuesFile}}'
+      
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespace}}'
+      
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+        # Conditional auto-sync based on environment
+        {{- if eq .environment "dev"}}
+        automated:
+          prune: true
+          selfHeal: true
+        {{- end}}

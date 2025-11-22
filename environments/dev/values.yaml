@@ -1,0 +1,55 @@
+# Development Environment Configuration
+
+# Image configuration for development
+image:
+  repository: myacr.azurecr.io/gitops-demo-app
+  tag: "dev-latest"
+  pullPolicy: Always
+
+# Lower replica count for dev
+replicaCount: 1
+
+# Environment variables for development
+env:
+  - name: ENVIRONMENT
+    value: "development"
+  - name: APP_VERSION
+    value: "dev-latest"
+  - name: PORT
+    value: "8080"
+  - name: LOG_LEVEL
+    value: "DEBUG"
+
+# Development ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-staging"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+  hosts:
+    - host: gitops-demo-dev.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: gitops-demo-dev-tls
+      hosts:
+        - gitops-demo-dev.example.com
+
+# Lower resources for dev environment
+resources:
+  limits:
+    cpu: 300m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Disable autoscaling in dev
+autoscaling:
+  enabled: false
+
+# Disable PDB in dev (single replica)
+podDisruptionBudget:
+  enabled: false
