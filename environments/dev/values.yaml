@@ -3,7 +3,7 @@
 # Image configuration for development
 image:
   repository: acrilearncode2024.azurecr.io/gitops-demo-app
-  tag: "dev-20251122-180720-823bbda"
+  tag: "dev-20251122-181206-99e867a"
   pullPolicy: Always
 
 # Lower replica count for dev
