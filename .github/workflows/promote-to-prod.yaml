@@ -28,17 +28,17 @@ jobs:
       - name: Verify image exists
         run: |
           az acr repository show-tags \
-            --name myacr \
+            --name acrilearncode2024 \
             --repository gitops-demo-app \
             --output table | grep "${{ inputs.source-tag }}" || exit 1
       
       - name: Tag image for production
         run: |
-          az acr login --name myacr
+          az acr login --name acrilearncode2024
           
-          SOURCE_IMAGE="myacr.azurecr.io/gitops-demo-app:${{ inputs.source-tag }}"
+          SOURCE_IMAGE="acrilearncode2024.azurecr.io/gitops-demo-app:${{ inputs.source-tag }}"
           PROD_TAG="prod-v1.0.${{ github.run_number }}"
-          PROD_IMAGE="myacr.azurecr.io/gitops-demo-app:${PROD_TAG}"
+          PROD_IMAGE="acrilearncode2024.azurecr.io/gitops-demo-app:${PROD_TAG}"
           
           # Pull source image
           docker pull ${SOURCE_IMAGE}
@@ -49,7 +49,7 @@ jobs:
           
           # Push production tags
           docker push ${PROD_IMAGE}
-          docker push myacr.azurecr.io/gitops-demo-app:prod-latest
+          docker push acrilearncode2024.azurecr.io/gitops-demo-app:prod-latest
           
           echo "PROD_TAG=${PROD_TAG}" >> $GITHUB_ENV
       

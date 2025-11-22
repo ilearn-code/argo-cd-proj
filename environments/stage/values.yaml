@@ -2,7 +2,7 @@
 
 # Image configuration for staging
 image:
-  repository: myacr.azurecr.io/gitops-demo-app
+  repository: acrilearncode2024.azurecr.io/gitops-demo-app
   tag: "stage-v1.0.0"
   pullPolicy: IfNotPresent
 

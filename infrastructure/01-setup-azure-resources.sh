@@ -11,7 +11,7 @@ set -e
 export RESOURCE_GROUP="rg-gitops-demo"
 export LOCATION="eastus"
 export AKS_CLUSTER_NAME="aks-gitops-demo"
-export ACR_NAME="myacr"  # Must be globally unique, lowercase alphanumeric only
+export ACR_NAME="acrilearncode2024"  # Must be globally unique, lowercase alphanumeric only
 export NODE_COUNT=3
 export NODE_SIZE="Standard_D2s_v3"
 

@@ -7,7 +7,7 @@ replicaCount: 2
 
 # Container image configuration
 image:
-  repository: myacr.azurecr.io/gitops-demo-app
+  repository: acrilearncode2024.azurecr.io/gitops-demo-app
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: "latest"
