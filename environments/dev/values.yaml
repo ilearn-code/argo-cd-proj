@@ -28,14 +28,14 @@ ingress:
     cert-manager.io/cluster-issuer: "letsencrypt-staging"
     nginx.ingress.kubernetes.io/ssl-redirect: "false"
   hosts:
-    - host: gitops-demo-dev.example.com
+    - host: dev.satyamay.tech
       paths:
         - path: /
           pathType: Prefix
   tls:
     - secretName: gitops-demo-dev-tls
       hosts:
-        - gitops-demo-dev.example.com
+        - dev.satyamay.tech
 
 # Lower resources for dev environment
 resources:

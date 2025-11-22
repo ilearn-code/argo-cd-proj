@@ -31,14 +31,14 @@ ingress:
     nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
   hosts:
-    - host: gitops-demo.example.com
+    - host: prod.satyamay.tech
       paths:
         - path: /
           pathType: Prefix
   tls:
     - secretName: gitops-demo-prod-tls
       hosts:
-        - gitops-demo.example.com
+        - prod.satyamay.tech
 
 # Production-grade resources
 resources:

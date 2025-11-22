@@ -29,14 +29,14 @@ ingress:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/rate-limit: "100"
   hosts:
-    - host: gitops-demo-stage.example.com
+    - host: stage.satyamay.tech
       paths:
         - path: /
           pathType: Prefix
   tls:
     - secretName: gitops-demo-stage-tls
       hosts:
-        - gitops-demo-stage.example.com
+        - stage.satyamay.tech
 
 # Moderate resources for staging
 resources:
