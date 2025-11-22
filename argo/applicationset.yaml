@@ -56,9 +56,3 @@ spec:
             duration: 5s
             factor: 2
             maxDuration: 3m
-        # Conditional auto-sync based on environment
-        {{- if eq .environment "dev"}}
-        automated:
-          prune: true
-          selfHeal: true
-        {{- end}}
